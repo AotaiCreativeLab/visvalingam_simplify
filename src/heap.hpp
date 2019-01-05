@@ -13,6 +13,8 @@
 
 #define CHECK_HEAP_CONSISTENCY 0
 
+namespace visvalingam_simplify {
+
 // Special Heap to store vertex data as we process the input linestring.
 // We need a min-heap with:
 //    standard: top(), pop(), push(elem)
@@ -131,7 +133,7 @@ private:
     size_t bubble_up(size_t n)
     {
         size_t parent_idx = parent(n);
-        while (n != NODE_TYPE_ROOT && parent_idx != NODE_TYPE_INVALID
+        while (n != NODE_TYPE_ROOT && (parent_idx != size_t(NODE_TYPE_INVALID))
                 && m_comp(m_data[n], m_data[parent_idx]))
         {
             std::swap(m_data[n], m_data[parent_idx]);
@@ -246,5 +248,7 @@ private:
     const Comparator m_comp;
     NodeToHeapIndexMap m_node_to_heap;
 };
+
+}
 
 #endif // HEAP_HPP

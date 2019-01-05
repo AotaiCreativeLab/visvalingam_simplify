@@ -8,7 +8,24 @@
 #include <limits>
 #include <vector>
 #include <iostream>
+#include <numeric>
+#include <algorithm>
 #include "heap.hpp"
+
+namespace visvalingam_simplify {
+
+double cross_product(const Point& v1, const Point& v2)
+{
+    return (v1.X * v2.Y) - (v1.Y * v2.X);
+}
+
+Point vector_sub(const Point& A, const Point& B)
+{
+    Point res;
+    res.X = A.X - B.X;
+    res.Y = A.Y - B.Y;
+    return res;
+}
 
 static const double NEARLY_ZERO = 1e-7;
 
@@ -63,6 +80,10 @@ Visvalingam_Algorithm::Visvalingam_Algorithm(const Linestring& input)
     : m_effective_areas(input.size(), 0.0)
     , m_input_line(input)
 {
+    // Assign the endpoints infinite effective area so that they are always kept.
+    m_effective_areas.front() = std::numeric_limits<double>::infinity();
+    m_effective_areas.back()  = std::numeric_limits<double>::infinity();
+
     // Compute effective area for each point in the input (except endpoints)
     std::vector<VertexNode*> node_list(input.size(), NULL);
     Heap<VertexNode*, VertexNodeCompare> min_heap(input.size());
@@ -129,6 +150,27 @@ void Visvalingam_Algorithm::simplify(double area_threshold,
     }
 }
 
+void Visvalingam_Algorithm::simplify(size_t numVertices, Linestring &result) const {
+    size_t inputSize = m_input_line.size();
+    numVertices = std::min(numVertices, inputSize);
+    if (numVertices < 4) throw std::runtime_error("At least 4 vertices must be kept!");
+
+    // Sort the vertices in descending order by their effective areas.
+    // Recall, the  first and last vertex were given an infinite effective area
+    // and will alwasy be kept.
+    std::vector<VertexIndex> sorted_index(m_effective_areas.size());
+    std::iota(sorted_index.begin(), sorted_index.end(), 0);
+    std::sort(sorted_index.begin(), sorted_index.end(), [this](VertexIndex a, VertexIndex b) -> bool {
+            return m_effective_areas[a] > m_effective_areas[b]; // sort descending, not ascending
+        });
+    std::vector<bool> keep(m_effective_areas.size(), false);
+    for (VertexIndex i = 0; i < numVertices; ++i) keep[sorted_index[i]] = true;
+
+    result.clear();
+    for (VertexIndex i = 0; i < inputSize; ++i)
+        if (keep[i]) result.push_back(m_input_line[i]);
+}
+
 void Visvalingam_Algorithm::print_areas() const
 {
     for (VertexIndex i=0; i < m_effective_areas.size(); ++i)
@@ -137,3 +179,4 @@ void Visvalingam_Algorithm::print_areas() const
     }
 }
 
+}
